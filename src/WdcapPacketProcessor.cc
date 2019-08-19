@@ -295,6 +295,8 @@ WdcapProcessingConfig::~WdcapProcessingConfig() {
     if (this->outmacfilter)
         free(this->outmacfilter);
 
+    if (this->anonkey)
+        free(this->anonkey);
 }
 
 void WdcapProcessingConfig::setAnonymise(char *anon) {
@@ -316,6 +318,7 @@ void WdcapProcessingConfig::setAnonymise(char *anon) {
 
 WdcapProcessingConfig::WdcapProcessingConfig() {
     this->anon = WDCAP_ANON_NONE;
+    this->anonkey = NULL;
     this->csum = WDCAP_CSUM_CHECK;
     this->snappayload = 65535;
     this->dnspayload = 0;
