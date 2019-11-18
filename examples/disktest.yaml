@@ -1,0 +1,33 @@
+
+# Write trace files using the pcap file format
+format: pcapfile
+
+# Name all output traces with a datetime string describing the
+# time that the trace begins, followed by the capture thread ID,
+# then the file creation reason. Append the file format to the
+# filename as a suffix.
+namingscheme: "/path/to/trace/directory/%Y%m%d-%H%M%S-%i-%J.%P"
+
+# Compress the traces using gzip compression
+compressmethod: gzip
+
+# Compress using compression level one
+compresslevel: 1
+
+# Use the hour boundary as the basis for rotation
+rotationperiod: hour
+
+# Rotate every 10 minutes (6 rotations per basis period)
+rotationfreq: 6
+
+# Stop after writing a total of two files -- set to zero to run forever
+maxfiles: 2
+
+# Set to 'yes' if the captured packets are VLAN-tagged and you want the
+# tags stripped from each packet before writing it. Leave set to 'no' if
+# the packets are not VLAN tagged to maximise performance.
+#strip: no
+
+# Apply the given BPF filter to the captured packet stream. Only packets
+# matching the filter will be written to the trace files.
+#filter: "tcp port 80"
