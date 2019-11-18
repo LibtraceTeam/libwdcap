@@ -61,6 +61,7 @@ WdcapAnonymiser::WdcapAnonymiser(uint8_t *key, uint8_t len, uint8_t cachebits) {
 WdcapAnonymiser::~WdcapAnonymiser() {
     
     delete(this->ipv4_cache);
+    delete(this->ipv6_cache);
     EVP_CIPHER_CTX_cleanup(&this->ctx);
 }
 
