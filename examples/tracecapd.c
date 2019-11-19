@@ -41,13 +41,14 @@
 typedef struct trace_globals_type {
     WdcapDiskWriterConfig *dwconf;
     WdcapProcessingConfig *ppconf;
-
+    char *infilterstr;
 } trace_globals_type;
 static trace_globals_type trace_globals;
 
 typedef struct trace_locals_type {
     WdcapDiskWriter *writer;
     WdcapPacketProcessor *pproc;
+    libtrace_filter_t *infilter;
 } trace_locals_type;
 
 static int count = 0;
@@ -76,6 +77,7 @@ static void *init_test(libtrace_t *trace UNUSED, libtrace_thread_t *t UNUSED,
 
     trace_locals->writer = createWdcapDiskWriter(dwconf, idstr);
     trace_locals->pproc = createWdcapPacketProcessor(ppconf);
+    trace_locals->infilter = trace_create_filter(trace_globals->infilterstr);
     return trace_locals;
 }
 
@@ -98,6 +100,10 @@ static libtrace_packet_t *per_packet(libtrace_t *trace UNUSED,
     trace_locals_type *trace_locals = (trace_locals_type*)tls;
     WdcapPacketProcessor *pproc = trace_locals->pproc;
     WdcapDiskWriter *writer = trace_locals->writer;
+    int filter_result = trace_apply_filter(trace_locals->infilter, packet);
+    if (filter_result == 0) {
+	return packet;
+    }
     int newlen = processWdcapPacket(pproc, packet);
     if (newlen == PPROC_FAIL) {
 	fprintf(stderr, "ERROR in process packet\n");
@@ -110,14 +116,26 @@ static libtrace_packet_t *per_packet(libtrace_t *trace UNUSED,
 }
 
 
-void usage(char *prog) {
-    fprintf(stderr, "Usage: %s -c WdcapDiskWriter.yaml -p WdcapProcessingConfig.yaml -s sourceuri [-t threads]\n",
+void show_usage(char *prog) {
+    fprintf(stderr, "Usage: %s -c WdcapDiskWriter.yaml -p WdcapProcessingConfig.yaml -s sourceuri -f \"input filter\" [-t threads]\n",
             prog);
 }
 
 
+void show_error(char *error_msg) {
+    fprintf(stderr, "%s.\n\n", error_msg);
+}
+
+
+void show_usage_error(char *argv[], char *error_msg) {
+    show_error(error_msg);
+    show_usage(argv[0]);
+}
+
+
 int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
-		WdcapDiskWriterConfig **dwconf, WdcapProcessingConfig **ppconf) {
+		WdcapDiskWriterConfig **dwconf, WdcapProcessingConfig **ppconf,
+		char **infilterstr) {
     char *dwconffile = NULL;
     char *ppconffile = NULL;
     int help = 0;
@@ -126,14 +144,15 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
         int optind, c;
         struct option long_options[] = {
             { "threads", 1, 0, 't' },
-            { "config", 1, 0, 'c' },
+            { "dwconfig", 1, 0, 'c' },
             { "ppconfig", 1, 0, 'p' },
             { "source", 1, 0, 's' },
+	    { "infilter", 1, 0, 'f' },
             { "help", 0, 0, 'h' },
             { NULL, 0, 0, 0 },
         };
 
-        c = getopt_long(argc, argv, "ht:c:s:p:", long_options, &optind);
+        c = getopt_long(argc, argv, "ht:c:s:p:f:", long_options, &optind);
         if (c == -1)
             break;
         switch(c) {
@@ -149,6 +168,9 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
             case 's':
                 *sourceuri = optarg;
                 break;
+            case 'f':
+		*infilterstr = optarg;
+		break;
             case 'h':
 		help = 1;
                 break;
@@ -159,7 +181,7 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
     }
 
     if (help) {
-	usage(argv[0]);
+	show_usage(argv[0]);
         return 1;
     }
 
@@ -167,33 +189,35 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
         *nb_threads = 1;
     }
 
+    if (*infilterstr == NULL) {
+        show_error("Please specify input filter");
+	return 1;
+    }
+
     if (dwconffile == NULL) {
-        fprintf(stderr, "Please specify the location of the WdcapDiskWriter config file.\n\n");
-        usage(argv[0]);
+        show_usage_error(argv, "Please specify the location of the WdcapDiskWriterConfig file");
         return 1;
     }
 
     *dwconf = parseWdcapDiskWriterConfig(dwconffile);
     if (*dwconf == NULL) {
-        fprintf(stderr, "Failed to parse WdcapDiskWriter config file.\n\n");
+        show_error("Failed to parse WdcapDiskWriterConfig file");
 	return 1;
     }
 
     if (ppconffile == NULL) {
-        fprintf(stderr, "Please specify the location of the WdcapProcessingConfig config file.\n\n");
-        usage(argv[0]);
+        show_usage_error(argv, "Please specify the location of the WdcapProcessingConfig file");
         return 1;
     }
 
     *ppconf = parseWdcapProcessingConfig(ppconffile);
     if (*ppconf == NULL) {
-	fprintf(stderr, "Failed to parse WdcapProcessingConfig config file.\n\n");
+	show_error("Failed to parse WdcapProcessingConfig file");
 	return 1;
     }
 
     if (*sourceuri == NULL) {
-        fprintf(stderr, "Please specify the source URI of your packets.\n\n");
-        usage(argv[0]);
+        show_usage_error(argv, "Please specify the source URI of your packets");
         return 1;
     }
 
@@ -221,7 +245,8 @@ int main(int argc, char *argv[]) {
 
     if (parse_args(argc, argv, &nb_threads, &sourceuri,
 			    &(trace_globals.dwconf),
-			    &(trace_globals.ppconf))) {
+			    &(trace_globals.ppconf),
+			    &(trace_globals.infilterstr))) {
         return 1;
     }
 
