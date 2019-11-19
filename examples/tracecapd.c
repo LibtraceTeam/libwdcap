@@ -41,13 +41,14 @@
 typedef struct trace_globals_type {
     WdcapDiskWriterConfig *dwconf;
     WdcapProcessingConfig *ppconf;
-
+    char *infilterstr;
 } trace_globals_type;
 static trace_globals_type trace_globals;
 
 typedef struct trace_locals_type {
     WdcapDiskWriter *writer;
     WdcapPacketProcessor *pproc;
+    libtrace_filter_t *infilter;
 } trace_locals_type;
 
 static int count = 0;
@@ -76,6 +77,7 @@ static void *init_test(libtrace_t *trace UNUSED, libtrace_thread_t *t UNUSED,
 
     trace_locals->writer = createWdcapDiskWriter(dwconf, idstr);
     trace_locals->pproc = createWdcapPacketProcessor(ppconf);
+    trace_locals->infilter = trace_create_filter(trace_globals->infilterstr);
     return trace_locals;
 }
 
@@ -98,6 +100,10 @@ static libtrace_packet_t *per_packet(libtrace_t *trace UNUSED,
     trace_locals_type *trace_locals = (trace_locals_type*)tls;
     WdcapPacketProcessor *pproc = trace_locals->pproc;
     WdcapDiskWriter *writer = trace_locals->writer;
+    int filter_result = trace_apply_filter(trace_locals->infilter, packet);
+    if (filter_result == 0) {
+	return packet;
+    }
     int newlen = processWdcapPacket(pproc, packet);
     if (newlen == PPROC_FAIL) {
 	fprintf(stderr, "ERROR in process packet\n");
@@ -111,7 +117,7 @@ static libtrace_packet_t *per_packet(libtrace_t *trace UNUSED,
 
 
 void show_usage(char *prog) {
-    fprintf(stderr, "Usage: %s -c WdcapDiskWriter.yaml -p WdcapProcessingConfig.yaml -s sourceuri [-t threads]\n",
+    fprintf(stderr, "Usage: %s -c WdcapDiskWriter.yaml -p WdcapProcessingConfig.yaml -s sourceuri -f \"input filter\" [-t threads]\n",
             prog);
 }
 
@@ -128,7 +134,8 @@ void show_usage_error(char *argv[], char *error_msg) {
 
 
 int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
-		WdcapDiskWriterConfig **dwconf, WdcapProcessingConfig **ppconf) {
+		WdcapDiskWriterConfig **dwconf, WdcapProcessingConfig **ppconf,
+		char **infilterstr) {
     char *dwconffile = NULL;
     char *ppconffile = NULL;
     int help = 0;
@@ -140,11 +147,12 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
             { "dwconfig", 1, 0, 'c' },
             { "ppconfig", 1, 0, 'p' },
             { "source", 1, 0, 's' },
+	    { "infilter", 1, 0, 'f' },
             { "help", 0, 0, 'h' },
             { NULL, 0, 0, 0 },
         };
 
-        c = getopt_long(argc, argv, "ht:c:s:p:", long_options, &optind);
+        c = getopt_long(argc, argv, "ht:c:s:p:f:", long_options, &optind);
         if (c == -1)
             break;
         switch(c) {
@@ -160,6 +168,9 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
             case 's':
                 *sourceuri = optarg;
                 break;
+            case 'f':
+		*infilterstr = optarg;
+		break;
             case 'h':
 		help = 1;
                 break;
@@ -176,6 +187,11 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
 
     if (*nb_threads <= 0) {
         *nb_threads = 1;
+    }
+
+    if (*infilterstr == NULL) {
+        show_error("Please specify input filter");
+	return 1;
     }
 
     if (dwconffile == NULL) {
@@ -229,7 +245,8 @@ int main(int argc, char *argv[]) {
 
     if (parse_args(argc, argv, &nb_threads, &sourceuri,
 			    &(trace_globals.dwconf),
-			    &(trace_globals.ppconf))) {
+			    &(trace_globals.ppconf),
+			    &(trace_globals.infilterstr))) {
         return 1;
     }
 
