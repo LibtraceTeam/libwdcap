@@ -110,9 +110,20 @@ static libtrace_packet_t *per_packet(libtrace_t *trace UNUSED,
 }
 
 
-void usage(char *prog) {
+void show_usage(char *prog) {
     fprintf(stderr, "Usage: %s -c WdcapDiskWriter.yaml -p WdcapProcessingConfig.yaml -s sourceuri [-t threads]\n",
             prog);
+}
+
+
+void show_error(char *error_msg) {
+    fprintf(stderr, "%s.\n\n", error_msg);
+}
+
+
+void show_usage_error(char *argv[], char *error_msg) {
+    show_error(error_msg);
+    show_usage(argv[0]);
 }
 
 
@@ -126,7 +137,7 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
         int optind, c;
         struct option long_options[] = {
             { "threads", 1, 0, 't' },
-            { "config", 1, 0, 'c' },
+            { "dwconfig", 1, 0, 'c' },
             { "ppconfig", 1, 0, 'p' },
             { "source", 1, 0, 's' },
             { "help", 0, 0, 'h' },
@@ -159,7 +170,7 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
     }
 
     if (help) {
-	usage(argv[0]);
+	show_usage(argv[0]);
         return 1;
     }
 
@@ -168,32 +179,29 @@ int parse_args(int argc, char *argv[], int *nb_threads, char **sourceuri,
     }
 
     if (dwconffile == NULL) {
-        fprintf(stderr, "Please specify the location of the WdcapDiskWriter config file.\n\n");
-        usage(argv[0]);
+        show_usage_error(argv, "Please specify the location of the WdcapDiskWriterConfig file");
         return 1;
     }
 
     *dwconf = parseWdcapDiskWriterConfig(dwconffile);
     if (*dwconf == NULL) {
-        fprintf(stderr, "Failed to parse WdcapDiskWriter config file.\n\n");
+        show_error("Failed to parse WdcapDiskWriterConfig file");
 	return 1;
     }
 
     if (ppconffile == NULL) {
-        fprintf(stderr, "Please specify the location of the WdcapProcessingConfig config file.\n\n");
-        usage(argv[0]);
+        show_usage_error(argv, "Please specify the location of the WdcapProcessingConfig file");
         return 1;
     }
 
     *ppconf = parseWdcapProcessingConfig(ppconffile);
     if (*ppconf == NULL) {
-	fprintf(stderr, "Failed to parse WdcapProcessingConfig config file.\n\n");
+	show_error("Failed to parse WdcapProcessingConfig file");
 	return 1;
     }
 
     if (*sourceuri == NULL) {
-        fprintf(stderr, "Please specify the source URI of your packets.\n\n");
-        usage(argv[0]);
+        show_usage_error(argv, "Please specify the source URI of your packets");
         return 1;
     }
 
