@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <libtrace.h>
-#include <libpacketdump.h>
 #include <assert.h>
 
 #include "HeaderWalk.h"
