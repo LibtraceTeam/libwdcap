@@ -1,0 +1,35 @@
+Source: libwdcap1
+Priority: optional
+Maintainer: Shane Alcock <salcock@waikato.ac.nz>
+Build-Depends: debhelper-compat (= 12), dh-autoreconf,
+ libtrace4-dev, libyaml-dev, libssl-dev
+Standards-Version: 4.1.3
+Section: libs
+Homepage: https://github.com/wanduow/libwdcap
+
+Package: libwdcap1
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: C/C++ library for network packet trace capture
+ Libwdcap is a helper library that provides routines designed to support
+ long-term network packet trace capture and archival.
+ .
+ Libwdcap is maintained by the WAND Network Research Group at Waikato
+ University, New Zealand.
+
+Package: libwdcap1-dev
+Section: libdevel
+Architecture: any
+Depends: libwdcap1 (= ${binary:Version}), ${misc:Depends}
+Provides: libwdcap-dev
+Description: development headers for the libwdcap library
+ This package contains development headers and other ancillary files for the
+ libwdcap library.
+ .
+ Libwdcap is a helper library that provides routines designed to support
+ long-term network packet trace capture and archival.
+ .
+ Libwdcap is maintained by the WAND Network Research Group at Waikato
+ University, New Zealand.
+
