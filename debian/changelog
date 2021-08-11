@@ -1,0 +1,5 @@
+libwdcap1 (1.0.1-1) unstable; urgency=medium
+
+  * Initial debian packaging and public release of libwdcap
+
+ -- Shane Alcock <shane.alcock@waikato.ac.nz>  Wed, 11 Aug 2021 15:09:17 +1200
