@@ -1,6 +1,6 @@
 AC_INIT(libwdcap, 1.0.1, contact@wand.net.nz)
 
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE([subdir-objects foreign])
 AC_CONFIG_SRCDIR(src/WdcapPacketProcessor.cc)
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
