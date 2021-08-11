@@ -1,9 +1,9 @@
 #!/usr/bin/make -f
 
 %:
-        dh $@ --with autoreconf
+	dh $@ --with autoreconf
 
 
 override_dh_builddeb:
-        dh_builddeb -- -Zgzip
+	dh_builddeb -- -Zgzip
 
